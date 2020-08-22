@@ -8,9 +8,9 @@ from collections import Counter
 # ----------------------------
 # Random Package Import
 import random
+
+
 # ----------------------------
-
-
 
 async def determine_prefix(client, message):
     guild_data = json.load(open("data/guild_data.json"))
@@ -160,10 +160,11 @@ async def dynamic_roles_active():
 
 client.loop.create_task(dynamic_roles_active())
 
+
 @client.command(aliases=['trigger-value'], case_insensitive=True)
 async def trigger_value(ctx):
     await ctx.send(
-        f"Your server's trigger value for the \"AutomaticRoles\" is \"{await determine_trigger_value(client, ctx.guild)}\"")
+        "Your server's trigger value for the \"AutomaticRoles\" is " + str(await determine_trigger_value(client, ctx.guild)))
 
 
 if __name__ == "__main__":
