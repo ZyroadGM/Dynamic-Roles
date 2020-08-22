@@ -1,0 +1,18 @@
+{
+  "guilds": [
+    {
+      "703890370823454753": {
+        "prefix": "-",
+        "AutomaticRoles": "ON",
+        "trigger_value": "1"
+      }
+    },
+    {
+      "656502380447268871": {
+        "prefix": "+",
+        "AutomaticRoles": "ON",
+        "trigger_value": "2"
+      }
+    }
+  ]
+}
