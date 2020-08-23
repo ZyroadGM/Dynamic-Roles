@@ -1,8 +1,6 @@
 # Discord.py Package Imports
 import discord
 from discord.ext import commands
-# Other Package Imports
-import time
 # ----------------------------
 
 
