@@ -1,12 +1,9 @@
 # Discord.py Package Import
+import discord
+from discord.ext import commands
 # ----------------------------
 # Json Package Import
 import json
-
-import discord
-from discord.ext import commands
-
-
 # ----------------------------
 
 
