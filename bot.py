@@ -1,6 +1,7 @@
 # Discord.py Package Import
 import discord
 from discord.ext.commands import Bot
+import asyncio
 # ----------------------------
 # Other Package Imports
 import json
@@ -8,8 +9,6 @@ from collections import Counter
 # ----------------------------
 # Random Package Import
 import random
-
-
 # ----------------------------
 
 async def determine_prefix(client, message):
@@ -59,7 +58,7 @@ class AutomaticRoles:
             if "<Game name='" in str(member.activities):
                 game = str(member.activities)[
                        str(member.activities).find("<Game name='") + len(
-                           "<Game name='"):str(member.activities).rfind("'>")]
+                           "<Game name='"):str(member.activities).rfind("' ")]
             if game is not None:
                 # Appends member data to count and check later
                 members.append(member)
@@ -156,15 +155,23 @@ async def dynamic_roles_active():
         # For guild(s) in "enabled_guilds" run the function DynamicRoles()
         for guild in enabled_guilds:
             await AutomaticRoles(guild.id).get_member_status()
-
-
 client.loop.create_task(dynamic_roles_active())
+
+
+async def timer_status():
+    await client.wait_until_ready()
+    uptime = 0
+    while not client.is_closed():
+        await asyncio.sleep(60)
+        uptime += 1
+        await client.change_presence(activity=discord.Activity(status=discord.Status.do_not_disturb, name=f"for games  [+help] uptime {uptime}min", type=discord.ActivityType.watching))
+client.loop.create_task(timer_status())
 
 
 @client.command(aliases=['trigger-value'], case_insensitive=True)
 async def trigger_value(ctx):
     await ctx.send(
-        "Your server's trigger value for the \"AutomaticRoles\" is " + str(await determine_trigger_value(client, ctx.guild)))
+        "Your server's trigger value for the \"AutomaticRoles\" is `" + str(await determine_trigger_value(client, ctx.guild)) + "`")
 
 
 if __name__ == "__main__":

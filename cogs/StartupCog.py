@@ -1,6 +1,8 @@
-# Discord.py Package Import
+# Discord.py Package Imports
 import discord
 from discord.ext import commands
+# Other Package Imports
+import time
 # ----------------------------
 
 
@@ -15,7 +17,7 @@ class Startup(commands.Cog):
               f'{self.client.user.name}\n'
               f'-----====-----')
         await self.client.change_presence(
-            activity=discord.Activity(status=discord.Status.do_not_disturb, name=f"for games [+help]", type=discord.ActivityType.watching))
+            activity=discord.Activity(status=discord.Status.do_not_disturb, name=f"Bot just started! [+help]", type=discord.ActivityType.watching))
 
 
 def setup(client):
