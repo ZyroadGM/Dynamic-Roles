@@ -1,35 +1,35 @@
 # Discord.py Package Import
 import discord
 from discord.ext.commands import Bot
-import asyncio
 # ----------------------------
 # Other Package Imports
-import json
+import asyncio
+import pymongo
+import os
+from pymongo import MongoClient
 from collections import Counter
 # ----------------------------
 # Random Package Import
 import random
+
 # ----------------------------
+db = MongoClient("database")
 
 async def determine_prefix(client, message):
-    guild_data = json.load(open("data/guild_data.json"))
-    guild = message.guild
-    for guild_data_in_list in guild_data['guilds']:
-        try:
-            # Get the prefix from the guild dict
-            return guild_data_in_list[str(guild.id)]['prefix']
-        except:
-            continue
+    prefix = db.find_one({"_id": str(message.guild.id)})["prefix"]
+    if prefix is None:
+        db.insert_one({"_id": str(message.guild.id), "prefix": "+", "AutomaticRoles": "OFF", "trigger_value": "2"})
+        prefix = "+"
+    return prefix
 
 
 async def determine_trigger_value(client, guild):
-    guild_data = json.load(open("data/guild_data.json"))
-    for guild_data_in_list in guild_data['guilds']:
-        try:
-            # Get the prefix from the guild dict
-            return int(guild_data_in_list[str(guild.id)]['trigger_value'])
-        except:
-            continue
+    try:
+        trigger_value = db.find_one({"_id": str(guild.id)})["trigger_value"]
+        return trigger_value
+    except:
+        db.insert_one({"_id": str(guild.id), "prefix": "+", "AutomaticRoles": "OFF", "trigger_value": "2"})
+        return "2"
 
 
 # Assigns the guild's prefix to bot if command has been run
@@ -46,28 +46,37 @@ class AutomaticRoles:
         members = []
         # ----------------------------
         for member in self.guild.members:
-            game = None
-            if member.activities == ():
-                pass
-            # Checks if the activity is a game
-            elif "<Activity type=<ActivityType.playing: 0>" in str(member.activities):
-                # Extracts the game from the data given by member.activities
-                game = str(member.activities)[
-                       str(member.activities).find("<Activity type=<ActivityType.playing: 0> name='") + len(
-                           "<Activity type=<ActivityType.playing: 0> name='"):str(member.activities).rfind("' ")]
-            if "<Game name='" in str(member.activities):
-                game = str(member.activities)[
-                       str(member.activities).find("<Game name='") + len(
-                           "<Game name='"):str(member.activities).rfind("' ")]
-            if game is not None:
-                # Appends member data to count and check later
-                members.append(member)
-                member_games_status.append(game)
-                # Adds roles to member by calling function "add_role_to_members"
-                await self.add_role_to_members(game, member)
-            else:
-                continue
-            await self.process_game(member_games_status, members)
+            if member.bot is False:
+                game = None
+                if member.activities == ():
+                    pass
+                # Checks if the activity is a game
+                elif "' url=" in str(member.activities):
+                    game = str(member.activities)[
+                           str(member.activities).find("<Activity type=<ActivityType.playing: 0> name='") + len(
+                               "<Activity type=<ActivityType.playing: 0> name='"):str(member.activities).rfind("' url=")]
+                elif "<Activity type=<ActivityType.playing: 0>" in str(member.activities):
+                    # Extracts the game from the data given by member.activities
+                    game = str(member.activities)[
+                           str(member.activities).find("<Activity type=<ActivityType.playing: 0> name='") + len(
+                               "<Activity type=<ActivityType.playing: 0> name='"):str(member.activities).rfind("'")]
+                elif "' url=" in str(member.activities):
+                    game = str(member.activities)[
+                           str(member.activities).find("<Game name='") + len(
+                               "<Game name='"):str(member.activities).rfind("' url=")]
+                elif "<Game name='" in str(member.activities):
+                    game = str(member.activities)[
+                           str(member.activities).find("<Game name='") + len(
+                               "<Game name='"):str(member.activities).rfind("'")]
+                if game is not None:
+                    # Appends member data to count and check later
+                    members.append(member)
+                    member_games_status.append(game)
+                    # Adds roles to member by calling function "add_role_to_members"
+                    await self.add_role_to_members(game, member)
+                else:
+                    continue
+                await self.process_game(member_games_status, members)
 
     async def process_game(self, member_games_status, members):
         guild_roles_exists = []
@@ -79,18 +88,18 @@ class AutomaticRoles:
         # print(list(set(member_games_status) - set(guild_roles_exists)))
         # Counts how many people are playing the same game
         not_existing_roles = list(set(member_games_status) - set(guild_roles_exists))
-        count_of_players = dict(Counter(list(set(member_games_status) - set(guild_roles_exists)))).values()
+        games = list(dict.fromkeys(not_existing_roles))
         # Resets member data per guild
         filtered_games_status = []
         filtered_members = []
         # ----------------------------
-        filtered_game_count = 0
-        for status_count in count_of_players:
-            if status_count >= await determine_trigger_value(client, self.guild):
+        for game in games:
+            if member_games_status.count(game) >= int(await determine_trigger_value(client, self.guild)):
                 # Appends filtered member data to process by role_management() function
-                filtered_games_status.append(not_existing_roles[filtered_game_count])
-                filtered_members.append(members[list(count_of_players).index(status_count)])
-            filtered_game_count += 1
+                filtered_games_status.append(game)
+                for player_game in member_games_status:
+                    if player_game == game:
+                        filtered_members.append(members[member_games_status.index(player_game)])
         # Adds the member data per member to the role_management() function
         for filtered_game_status in filtered_games_status:
             await self.server_role_management(filtered_game_status)
@@ -116,6 +125,8 @@ class AutomaticRoles:
                 pass
         try:
             guild_role_automatic_role = discord.utils.get(self.guild.roles, name="-~~~Automatic Roles~~~-")
+            if guild_role_automatic_role is None:
+                await self.guild.create_role(name="-~~~Automatic Roles~~~-", colour=discord.Colour.lighter_grey())
             guild_role_ = discord.utils.get(self.guild.roles, name=game)
             await guild_role_.edit(position=guild_role_automatic_role.position - 1)
         except Exception as e:
@@ -140,21 +151,19 @@ async def dynamic_roles_active():
     await client.wait_until_ready()
     while not client.is_closed():
         enabled_guilds = []
-        # Loads guild data from the "guild_data.json" file so it could be used later
-        guild_data = json.load(open("data/guild_data.json"))
-        for guild in client.guilds:
-            # Checks every guild for the status of the attribute 'DynamicRoles'
-            for guild_data_in_list in guild_data['guilds']:
-                try:
-                    # If "DynamicRoles" status is enabled append to "enabled_guilds" list so it could be processed later
-                    if guild_data_in_list[str(guild.id)]['AutomaticRoles'] == "ON":
-                        enabled_guilds.append(guild)
-                except:
-                    # If "DynamicRoles" status is disabled take new guild
-                    continue
+        # Checks every guild for the status of the attribute 'DynamicRoles'
+        for guild_data_in_list in db.find({}):
+            # If "DynamicRoles" status is enabled append to "enabled_guilds" list so it could be processed later
+            if db.find_one(guild_data_in_list)['AutomaticRoles'] == "ON":
+                enabled_guilds.append(client.get_guild(int(db.find_one(guild_data_in_list)["_id"])))
+            else:
+                # If "DynamicRoles" status is disabled take new guild
+                continue
         # For guild(s) in "enabled_guilds" run the function DynamicRoles()
         for guild in enabled_guilds:
             await AutomaticRoles(guild.id).get_member_status()
+
+
 client.loop.create_task(dynamic_roles_active())
 
 
@@ -164,14 +173,19 @@ async def timer_status():
     while not client.is_closed():
         await asyncio.sleep(60)
         uptime += 1
-        await client.change_presence(activity=discord.Activity(status=discord.Status.do_not_disturb, name=f"for games  [+help] uptime {uptime}min", type=discord.ActivityType.watching))
+        await client.change_presence(activity=discord.Activity(status=discord.Status.do_not_disturb,
+                                                               name=f"for games  [+help] | uptime {uptime}min | servers {db.count_documents({})} | ",
+                                                               type=discord.ActivityType.watching))
+
+
 client.loop.create_task(timer_status())
 
 
 @client.command(aliases=['trigger-value'], case_insensitive=True)
 async def trigger_value(ctx):
     await ctx.send(
-        "Your server's trigger value for the \"AutomaticRoles\" is `" + str(await determine_trigger_value(client, ctx.guild)) + "`")
+        "Your server's trigger value for the \"AutomaticRoles\" is `" + str(
+            await determine_trigger_value(client, ctx.guild)) + "`")
 
 
 if __name__ == "__main__":
