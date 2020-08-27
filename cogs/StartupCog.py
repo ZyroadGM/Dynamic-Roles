@@ -2,6 +2,10 @@
 import discord
 from discord.ext import commands
 # ----------------------------
+# Database Package Import
+import pymongo
+from pymongo import MongoClient
+# ----------------------------
 
 
 class Startup(commands.Cog):
@@ -15,7 +19,8 @@ class Startup(commands.Cog):
               f'{self.client.user.name}\n'
               f'-----====-----')
         await self.client.change_presence(
-            activity=discord.Activity(status=discord.Status.do_not_disturb, name=f"Bot just started! [+help]", type=discord.ActivityType.watching))
+            activity=discord.Activity(status=discord.Status.do_not_disturb, name=f"Bot just started! [+help]",
+                                      type=discord.ActivityType.watching))
 
 
 def setup(client):
