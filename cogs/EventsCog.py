@@ -10,6 +10,7 @@ import os
 
 db = MongoClient("database")
 
+
 class EventsCog(commands.Cog):
     def __init__(self, client):
         self.client = client
@@ -32,10 +33,6 @@ class EventsCog(commands.Cog):
         if message.content == "wtismysrpx":
             prefix = db.find_one({"_id": str(message.guild.id)})["prefix"]
             await message.channel.send(f"Your server's prefix is \"`{prefix}`\"")
-
-    @commands.Cog.listener()
-    async def on_guild_unavailable(self, guild):
-        db.delete_one({"_id": str(guild.id)})
 
 
 def setup(client):
