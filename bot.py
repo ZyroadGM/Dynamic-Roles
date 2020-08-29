@@ -15,6 +15,7 @@ import random
 # ----------------------------
 db = MongoClient("database")
 
+
 async def determine_prefix(client, message):
     prefix = db.find_one({"_id": str(message.guild.id)})["prefix"]
     if prefix is None:
@@ -142,6 +143,7 @@ class AutomaticRoles:
         if member_role_exists is False:
             try:
                 await member.add_roles(discord.utils.get(member.guild.roles, name=game))
+                print(f"Added {game} role to {member.name} in {self.guild.id}")
             except:
                 pass
 
@@ -155,14 +157,17 @@ async def dynamic_roles_active():
         for guild_data_in_list in db.find({}):
             # If "DynamicRoles" status is enabled append to "enabled_guilds" list so it could be processed later
             if db.find_one(guild_data_in_list)['AutomaticRoles'] == "ON":
-                enabled_guilds.append(client.get_guild(int(db.find_one(guild_data_in_list)["_id"])))
+                if client.get_guild(int(db.find_one(guild_data_in_list)["_id"])) is not None:
+                    enabled_guilds.append(client.get_guild(int(db.find_one(guild_data_in_list)["_id"])))
             else:
                 # If "DynamicRoles" status is disabled take new guild
                 continue
         # For guild(s) in "enabled_guilds" run the function DynamicRoles()
         for guild in enabled_guilds:
-            await AutomaticRoles(guild.id).get_member_status()
-
+            try:
+                await AutomaticRoles(guild.id).get_member_status()
+            except Exception as e:
+                print(f"Exception: {e}")
 
 client.loop.create_task(dynamic_roles_active())
 
@@ -173,7 +178,7 @@ async def timer_status():
     while not client.is_closed():
         await asyncio.sleep(60)
         uptime += 1
-        await client.change_presence(activity=discord.Activity(status=discord.Status.do_not_disturb,
+        await client.change_presence(activity=discord.Activity(status=discord.Status.dnd,
                                                                name=f"for games  [+help] | uptime {uptime}min | servers {db.count_documents({})} | ",
                                                                type=discord.ActivityType.watching))
 
