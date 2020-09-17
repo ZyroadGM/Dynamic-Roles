@@ -77,7 +77,7 @@ class AutomaticRoles:
                     await self.add_role_to_members(game, member)
                 else:
                     continue
-                await self.process_game(member_games_status, members)
+        await self.process_game(member_games_status, members)
 
     async def process_game(self, member_games_status, members):
         guild_roles_exists = []
